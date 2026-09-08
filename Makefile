@@ -206,14 +206,6 @@ UPROGS=\
 
 
 
-ifeq ($(LAB),util)
-UPROGS += \
-	$U/_sleep\
-	$U/_sixfive\
-	$U/_find
-endif
-### ENDIF
-
 
 ifeq ($(LAB),syscall)
 UPROGS += \
