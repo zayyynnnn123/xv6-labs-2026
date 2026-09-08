@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+
+import re
+from gradelib import *
+
+r = Runner(save("xv6.out"))
+
+@test(5, "sleep, no arguments")
+def test_sleep_no_args():
+    r.run_qemu(shell_script([
+        'sleep'
+    ]))
+    r.match(no=["exec .* failed", "$ sleep\n$"])
+
+@test(5, "sleep, returns")
+def test_sleep_no_args():
+    r.run_qemu(shell_script([
+        'sleep',
+        'echo OK'
+    ]))
+    r.match('^OK$', no=["exec .* failed", "$ sleep\n$"])
+
+@test(10, "sleep, makes syscall")
+def test_sleep():
+    r.run_qemu(shell_script([
+        'sleep 10',
+        'echo FAIL'
+    ]), stop_breakpoint('sys_pause'))
+    r.match('\\$ sleep 10', no=['FAIL'])
+
+@test(10, "sixfive_test")
+def test_sixfive_test():
+    r.run_qemu(shell_script([
+        'sixfive sixfive.txt',
+    ]))
+    r.match('^5', '^100', '^18', '^6')
+
+@test(10, "sixfive_readme")
+def test_sixfive_readme():
+    r.run_qemu(shell_script([
+        'sixfive README',
+    ]))
+    r.match('^6', '^6', '^1810','^6', '^1810')
+
+@test(10, "sixfive_all")
+def test_sixfive_readme():
+    r.run_qemu(shell_script([
+        'sixfive sixfive.txt README',
+    ]))
+    r.match('^5', '^100', '^18', '^6', '^6', '^6', '^1810','^6', '^1810')
+
+@test(10, "memdump, examples")
+def test_memdump_examples():
+    r.run_qemu(shell_script([ "memdump" ]))
+    r.match('^61810', '^2026',
+            '^a string',
+            '^another',
+            '^1819438967',
+            '^100',
+            '^z',
+            '^xyzzy',
+            '^hello',
+            '^w',
+            '^d')
+
+@test(10, "memdump, format ii, S, p")
+def test_memdump_examples():
+    r.run_qemu(shell_script([ "echo abcdefgh12345678 | memdump ii",
+                              "echo abcdefgh12345678 | memdump S",
+                              "echo abcdefgh12345678 | memdump p" ]))
+    r.match('^1684234849',
+            '^1751606885',
+            '^abcdefgh12345678',
+            '^6867666564636261')
+
+@test(10, "find, in current directory")
+def test_find_curdir():
+    fn = random_str()
+    r.run_qemu(shell_script([
+        'echo > %s' % fn,
+        'find . %s' % fn
+    ]))
+    r.match('./%s' % fn)
+    r.match(no=["./README", "README"])
+
+@test(10, "find, in sub-directory")
+def test_find_subdir():
+    dd = random_str()
+    fn = random_str()
+    r.run_qemu(shell_script([
+        'echo > %s' % fn,
+        'mkdir %s' % dd,
+        'echo > %s/%s' % (dd, fn),
+        'find %s %s' % (dd, fn)
+    ]))
+    r.match('%s/%s' % (dd, fn))
+    r.match(no=['./%s' % fn])
+
+@test(10, "find, recursive")
+def test_find_recursive():
+    needle = random_str()
+    dirs = [random_str() for _ in range(3)]
+    r.run_qemu(shell_script([
+        'mkdir %s' % dirs[0],
+        'echo > %s/%s' % (dirs[0], needle),
+        'mkdir %s/%s' % (dirs[0], dirs[1]),
+        'echo > %s/%s/%s' % (dirs[0], dirs[1], needle),
+        'mkdir %s' % dirs[2],
+        'echo > %s/%s' % (dirs[2], needle),
+        'find . %s' % needle
+    ]))
+    r.match('./%s/%s' % (dirs[0], needle),
+            './%s/%s/%s' % (dirs[0], dirs[1], needle),
+            './%s/%s' % (dirs[2], needle))
+
+@test(10, "exec")
+def test_find_exec():
+    r.run_qemu(shell_script([
+        'find . wc -exec echo',
+    ]))
+    r.match('^./wc$')
+
+@test(10, "exec")
+def test_find_exec_args():
+    r.run_qemu(shell_script([
+        'find . findtest.sh -exec grep hello',
+    ]))
+    matches = re.findall("hello", r.qemu.output)
+    assert_equal(len(matches), 5, "Number of appearances of 'hello'")
+
+
+@test(10, "exec")
+def test_test_find_sh():
+    r.run_qemu(shell_script([
+        'sh < findtest.sh',
+        'echo DONE',
+    ], 'DONE'))
+    matches = re.findall("hello", r.qemu.output)
+    assert_equal(len(matches), 3, "Number of appearances of 'hello'")
+
+@test(5, "sleep, zero and non-numeric args return")
+def test_sleep_corner_args():
+    # pause(0) and pause(atoi("z")==0) must return promptly, not hang.
+    r.run_qemu(shell_script([
+        'sleep 0',
+        'sleep z',
+        'echo OK0',
+    ]))
+    r.match('^OK0$', no=["exec .* failed"])
+
+@test(5, "sixfive, stdin and missing file")
+def test_sixfive_corner():
+    missing = random_str()
+    r.run_qemu(shell_script([
+        # no file args -> read numbers from standard input
+        'echo 12 30 7 | sixfive',
+        # a file that does not exist -> error message, no crash
+        'sixfive %s' % missing,
+        'echo DONE',
+    ]))
+    # 12 (div by 6) and 30 (div by 5 and 6) print; 7 must not.
+    r.match('^12$', '^30$', 'three: cannot open', no=['^7$'])
+
+@test(5, "memdump, formats h c, bounds checking, usage")
+def test_memdump_corner():
+    r.run_qemu(shell_script([
+        'echo abcdefgh | memdump h',   # in bounds: "ab" -> 0x6261 == 25185
+        'echo abcdefgh | memdump c',   # in bounds: char 'a'
+        'echo a | memdump i',          # only 2 bytes ("a\n") for a 4-byte int -> refuse
+        'echo abc | memdump ii',       # first int fits ("abc\n"); second runs off the end
+        'memdump a b c',               # too many args -> usage
+    ]))
+    r.match('^25185$', '^a$', '^174285409$',
+            'memdump: not enough data',  # bounds check fires for the truncated reads
+            '^Usage: memdump',
+            # A correct, bounds-checked memdump must NOT zero-pad past the input:
+            # 2657 == 0x00000a61 is the "a\n\0\0" value a padding bug would print.
+            no=['^2657$'])
+
+@test(10, "find, missing target, no duplicates, directory match")
+def test_find_corner():
+    present = random_str()
+    absent = random_str()
+    dname = random_str()
+    r.run_qemu(shell_script([
+        'mkdir d1',
+        'echo > d1/%s' % present,
+        'mkdir d2',
+        'mkdir d2/%s' % dname,
+        'find . %s' % present,   # one match, exactly once
+        'find . %s' % absent,    # no match, no crash
+        'find . %s' % dname,     # matches a directory name
+        'echo DONE',
+    ]))
+    # Catch a solution that recurses into "." / "..": that would print the
+    # file many times (or "path too long") instead of exactly once.
+    found = re.findall(r'(?m)^\./.*%s' % present, r.qemu.output)
+    assert_equal(len(found), 1, "times %s reported by find" % present)
+    # Missing target produces no result line.
+    missing = re.findall(r'(?m)^\./.*%s' % absent, r.qemu.output)
+    assert_equal(len(missing), 0, "times missing target reported")
+    # A directory whose name matches is itself reported.
+    dirmatch = re.findall(r'(?m)^\./.*%s' % dname, r.qemu.output)
+    assert_equal(len(dirmatch), 1, "times directory %s reported" % dname)
+    # The shell kept running (no hang / panic).
+    r.match('^DONE$', no=['path too long', 'panic'])
+
+@test(1, "time")
+def test_time():
+    check_time()
+    
+run_tests()
