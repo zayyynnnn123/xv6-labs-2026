@@ -120,7 +120,7 @@ def test_find_exec():
     ]))
     r.match('^./wc$')
 
-@test(10, "exec")
+@test(10, "exec, multiple args")
 def test_find_exec_args():
     r.run_qemu(shell_script([
         'find . findtest.sh -exec grep hello',
@@ -129,7 +129,7 @@ def test_find_exec_args():
     assert_equal(len(matches), 5, "Number of appearances of 'hello'")
 
 
-@test(10, "exec")
+@test(10, "exec via sh script")
 def test_test_find_sh():
     r.run_qemu(shell_script([
         'sh < findtest.sh',
