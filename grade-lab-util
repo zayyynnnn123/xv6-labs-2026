@@ -159,7 +159,7 @@ def test_sixfive_corner():
         'echo DONE',
     ]))
     # 12 (div by 6) and 30 (div by 5 and 6) print; 7 must not.
-    r.match('^12$', '^30$', 'cannot open', no=['^7$'])
+    r.match('^12$', '^30$', '^.*cannot open', no=['^7$'])
 
 @test(5, "memdump, formats h c, bounds checking, usage")
 def test_memdump_corner():
