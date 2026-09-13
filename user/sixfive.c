@@ -21,7 +21,7 @@ process_token(char *tok, int len)
   int value = 0;
   for (int i = 0; i < len; i++) {
     if (tok[i] < '0' || tok[i] > '9')
-      return;  // token has a non-digit char -> not a pure number, ignore it
+      return; // token has a non-digit char -> not a pure number, ignore it
     value = value * 10 + (tok[i] - '0');
   }
 
@@ -45,14 +45,14 @@ sixfive(int fd)
         tok[tlen++] = c;
     }
   }
-  process_token(tok, tlen);  // end of file counts as an implicit separator
+  process_token(tok, tlen); // end of file counts as an implicit separator
 }
 
 int
 main(int argc, char *argv[])
 {
   if (argc <= 1) {
-    sixfive(0);  // fd 0 = stdin
+    sixfive(0); // fd 0 = stdin
     exit(0);
   }
 

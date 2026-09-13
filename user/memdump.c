@@ -61,5 +61,4 @@ void
 memdump(char *fmt, char *data, int len)
 {
   // Your code here.  `data` holds `len` valid bytes.
-
 }
