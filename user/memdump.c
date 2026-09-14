@@ -60,5 +60,68 @@ main(int argc, char *argv[])
 void
 memdump(char *fmt, char *data, int len)
 {
-  // Your code here.  `data` holds `len` valid bytes.
+  int off = 0;  // how many bytes of `data` we've consumed so far
+
+  for (int fi = 0; fmt[fi] != '\0'; fi++) {
+    char f = fmt[fi];
+
+    if (f == 'S') {
+      // rest of data: print bytes up to null terminator or end of len
+      int i = off;
+      while (i < len && data[i] != '\0')
+        i++;
+      write(1, data + off, i - off);
+      write(1, "\n", 1);
+      off = len;
+      continue;
+    }
+
+    int need;
+    switch (f) {
+    case 'i': need = 4; break;
+    case 'p': need = 8; break;
+    case 'h': need = 2; break;
+    case 'c': need = 1; break;
+    case 's': need = 8; break;
+    default:  continue;  // unrecognized format char, skip it
+    }
+
+    if (off + need > len) {
+      printf("memdump: not enough data for '%c'\n", f);
+      return;
+    }
+
+    switch (f) {
+    case 'i': {
+      int v;
+      memmove(&v, data + off, 4);
+      printf("%d\n", v);
+      break;
+    }
+    case 'p': {
+      uint64 v;
+      memmove(&v, data + off, 8);
+      printf("%p\n", (void*)v);
+      break;
+    }
+    case 'h': {
+      short v;
+      memmove(&v, data + off, 2);
+      printf("%d\n", v);
+      break;
+    }
+    case 'c': {
+      printf("%c\n", data[off]);
+      break;
+    }
+    case 's': {
+      uint64 ptr;
+      memmove(&ptr, data + off, 8);
+      printf("%s\n", (char*)ptr);
+      break;
+    }
+    }
+
+    off += need;
+  }
 }
