@@ -60,7 +60,7 @@ main(int argc, char *argv[])
 void
 memdump(char *fmt, char *data, int len)
 {
-  int off = 0;  // how many bytes of `data` we've consumed so far
+  int off = 0; // how many bytes of `data` we've consumed so far
 
   for (int fi = 0; fmt[fi] != '\0'; fi++) {
     char f = fmt[fi];
@@ -78,12 +78,23 @@ memdump(char *fmt, char *data, int len)
 
     int need;
     switch (f) {
-    case 'i': need = 4; break;
-    case 'p': need = 8; break;
-    case 'h': need = 2; break;
-    case 'c': need = 1; break;
-    case 's': need = 8; break;
-    default:  continue;  // unrecognized format char, skip it
+    case 'i':
+      need = 4;
+      break;
+    case 'p':
+      need = 8;
+      break;
+    case 'h':
+      need = 2;
+      break;
+    case 'c':
+      need = 1;
+      break;
+    case 's':
+      need = 8;
+      break;
+    default:
+      continue; // unrecognized format char, skip it
     }
 
     if (off + need > len) {
@@ -101,7 +112,7 @@ memdump(char *fmt, char *data, int len)
     case 'p': {
       uint64 v;
       memmove(&v, data + off, 8);
-      printf("%p\n", (void*)v);
+      printf("%p\n", (void *)v);
       break;
     }
     case 'h': {
@@ -117,7 +128,7 @@ memdump(char *fmt, char *data, int len)
     case 's': {
       uint64 ptr;
       memmove(&ptr, data + off, 8);
-      printf("%s\n", (char*)ptr);
+      printf("%s\n", (char *)ptr);
       break;
     }
     }
