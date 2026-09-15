@@ -3,7 +3,8 @@
 #include "kernel/types.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
-
+#include "kernel/stat.h"
+#include "kernel/fs.h" // for struct dirent, DIRSIZ
 // Parsed command representation
 #define EXEC  1
 #define REDIR 2
@@ -22,6 +23,17 @@ struct execcmd {
   char *argv[MAXARGS];
   char *eargv[MAXARGS];
 };
+
+int
+prefix_match(char *name, char *prefix, int prefixlen)
+{
+  int i;
+  for (i = 0; i < prefixlen; i++) {
+    if (name[i] != prefix[i])
+      return 0;
+  }
+  return 1;
+}
 
 struct redircmd {
   int type;
@@ -134,12 +146,81 @@ runcmd(struct cmd *cmd)
 int
 getcmd(char *buf, int nbuf)
 {
-  write(2, "$ ", 2);
+  struct stat st;
+
+  if (fstat(0, &st) == 0 && st.type == T_DEVICE)
+    fprintf(2, "$ ");
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
   if (buf[0] == 0) // EOF
     return -1;
   return 0;
+}
+// Look for a tab in buf; if found, try to complete the word before it
+// using filenames in the current directory. Returns 1 if buf was
+// modified and ready to run, 0 if it printed suggestions and should
+// be re-prompted instead.
+int
+try_complete(char *buf, int nbuf)
+{
+  char *tab, *wordstart;
+  int prefixlen;
+  int fd;
+  struct dirent de;
+  char matches[16][DIRSIZ + 1];
+  int nmatches = 0;
+  int i;
+
+  tab = strchr(buf, '\t');
+  if (tab == 0)
+    return 1; // no tab, nothing to do, run as-is
+
+  // find start of the word right before the tab
+  wordstart = tab;
+  while (wordstart > buf && *(wordstart - 1) != ' ' && *(wordstart - 1) != '\t')
+    wordstart--;
+  prefixlen = tab - wordstart;
+
+  if ((fd = open(".", 0)) < 0) {
+    fprintf(2, "sh: cannot open .\n");
+    // just drop the tab and continue
+    memmove(tab, tab + 1, strlen(tab + 1) + 1);
+    return 1;
+  }
+
+  while (read(fd, &de, sizeof(de)) == sizeof(de)) {
+    if (de.inum == 0)
+      continue;
+    if (strlen(de.name) < prefixlen)
+      continue;
+    if (prefix_match(de.name, wordstart, prefixlen)) {
+      if (nmatches < 16) {
+        memmove(matches[nmatches], de.name, DIRSIZ);
+        matches[nmatches][DIRSIZ] = 0;
+        nmatches++;
+      }
+    }
+  }
+  close(fd);
+
+  if (nmatches == 1) {
+    // splice: wordstart .. tab gets replaced by matches[0],
+    // then keep whatever was after the tab.
+    char rest[100];
+    strcpy(rest, tab + 1); // everything after the tab
+    strcpy(wordstart, matches[0]);
+    strcpy(wordstart + strlen(matches[0]), rest);
+    return 1;
+  } else if (nmatches == 0) {
+    fprintf(2, "\nno matches\n");
+    return 0;
+  } else {
+    fprintf(2, "\n");
+    for (i = 0; i < nmatches; i++)
+      fprintf(2, "%s  ", matches[i]);
+    fprintf(2, "\n");
+    return 0;
+  }
 }
 
 int
@@ -158,21 +239,25 @@ main(void)
 
   // Read and run input commands.
   while (getcmd(buf, sizeof(buf)) >= 0) {
-    char *cmd = buf;
-    while (*cmd == ' ' || *cmd == '\t')
-      cmd++;
-    if (*cmd == '\n') // is a blank command
+    if (!try_complete(buf, sizeof(buf)))
       continue;
-    if (cmd[0] == 'c' && cmd[1] == 'd' && cmd[2] == ' ') {
-      // Chdir must be called by the parent, not the child.
-      cmd[strlen(cmd) - 1] = 0; // chop \n
-      if (chdir(cmd + 3) < 0)
-        fprintf(2, "cannot cd %s\n", cmd + 3);
-    } else {
-      if (fork1() == 0)
-        runcmd(parsecmd(cmd));
-      wait(0);
+    if (buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' ') {
+      // Clumsy but will have to do for now.
+      // Chdir has no effect on the parent if run in the child.
+      buf[strlen(buf) - 1] = 0; // chop \n
+      if (chdir(buf + 3) < 0)
+        fprintf(2, "cannot cd %s\n", buf + 3);
+      continue;
     }
+    if (buf[0] == 'w' && buf[1] == 'a' && buf[2] == 'i' && buf[3] == 't' &&
+        (buf[4] == '\n' || buf[4] == ' ')) {
+      while (wait(0) >= 0)
+        ;
+      continue;
+    }
+    if (fork1() == 0)
+      runcmd(parsecmd(buf));
+    wait(0);
   }
   exit(0);
 }
