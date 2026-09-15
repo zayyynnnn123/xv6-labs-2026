@@ -223,6 +223,68 @@ try_complete(char *buf, int nbuf)
   }
 }
 
+#define MAXHIST 16
+char history[MAXHIST][100];
+int nhistory = 0; // total commands ever recorded
+
+void
+add_history(char *buf)
+{
+  if (buf[0] == 0 || buf[0] == '\n')
+    return;
+  strcpy(history[nhistory % MAXHIST], buf);
+  nhistory++;
+}
+
+void
+print_history(void)
+{
+  int count = nhistory < MAXHIST ? nhistory : MAXHIST;
+  int start = nhistory < MAXHIST ? 0 : nhistory % MAXHIST;
+  int i, idx, num;
+
+  for (i = 0; i < count; i++) {
+    idx = (start + i) % MAXHIST;
+    num = nhistory - count + i + 1;
+    printf("%d  %s", num, history[idx]);
+  }
+}
+
+// Returns 1 if buf now holds a runnable command (possibly expanded),
+// 0 if the reference was invalid and nothing should run.
+int
+expand_history(char *buf, int nbuf)
+{
+  int n = 0;
+  char *p;
+
+  if (buf[0] != '!')
+    return 1; // nothing to expand
+
+  if (buf[1] == '!') {
+    n = nhistory;
+  } else {
+    p = buf + 1;
+    if (*p < '0' || *p > '9') {
+      fprintf(2, "sh: invalid history reference\n");
+      return 0;
+    }
+    while (*p >= '0' && *p <= '9') {
+      n = n * 10 + (*p - '0');
+      p++;
+    }
+  }
+
+  if (n <= 0 || n > nhistory || nhistory - n >= MAXHIST) {
+    fprintf(2, "sh: no such command in history\n");
+    return 0;
+  }
+
+  strcpy(buf, history[(n - 1) % MAXHIST]);
+  fprintf(2, "%s", buf); // echo the expanded command, like bash does
+  return 1;
+}
+
 int
 main(void)
 {
@@ -241,10 +303,19 @@ main(void)
   while (getcmd(buf, sizeof(buf)) >= 0) {
     if (!try_complete(buf, sizeof(buf)))
       continue;
+
+    if (!expand_history(buf, sizeof(buf)))
+      continue;
+
+    if (prefix_match(buf, "history", 7) && (buf[7] == '\n' || buf[7] == 0)) {
+      print_history();
+      continue;
+    }
+
+    add_history(buf);
+
     if (buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' ') {
-      // Clumsy but will have to do for now.
-      // Chdir has no effect on the parent if run in the child.
-      buf[strlen(buf) - 1] = 0; // chop \n
+      buf[strlen(buf) - 1] = 0;
       if (chdir(buf + 3) < 0)
         fprintf(2, "cannot cd %s\n", buf + 3);
       continue;
