@@ -1,0 +1,49 @@
+Q1:
+usertrap() called syscall(). This is because when a user program executes
+the ecall instruction to invoke a system call, it traps into the kernel,
+and usertrap() handles the trap, determines it's a syscall, and calls syscall.
+
+(gdb) n
+141       struct proc *p = myproc();
+(gdb) n
+143       num = p->trapframe->a7;
+(gdb) n
+144       if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+(gdb) n
+147         p->trapframe->a0 = syscalls[num]();
+(gdb) n
+usertrap () at kernel/trap.c:81
+81        if (killed(p))
+(gdb)
+
+
+Q2:
+p->trapframe->a7 is 0xf (15), which corresponds to SYS_open (see kernel/syscall.h).
+This is the first system call made by the init process (user/init.c), which
+calls open("console", O_RDWR) to set up the console device for standard I/O.
+
+
+Q3:
+sstatus = 0x200000020. Bit 8 (SPP) is 0, which means the previous mode
+was user mode. This makes sense because the trap was caused by a user
+process (init) executing the ecall instruction for a system call.
+
+Q4:
+The kernel panics at the instruction:
+lw a3,0(zero)
+This loads a word from address 0 into register a3, which holds the value
+of num. This is the compiled form of num = *(int *)0;
+
+Q5:
+it is panicing at assembly instruction on address 0x80001d80 which is lw a3,0(zer0) #0x0
+
+Q6:
+The kernel crashes because address 0 is not mapped in the kernel's page
+table (see kernel/vm.c / kvmmake, and Figure 3-3 in the xv6 book — the
+kernel's virtual memory layout starts at KERNBASE, leaving address 0
+unmapped). scause=0xd is "Load page fault," confirming the CPU tried to
+load from an unmapped address. stval=0x0 confirms the faulting address
+was 0, matching num = *(int *)0;
+
+Q7:
+The process running when the kernel panicked was "init" with pid 1.
