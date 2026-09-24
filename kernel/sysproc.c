@@ -17,6 +17,22 @@ sys_exit(void)
 }
 
 uint64
+sys_interpose(void)
+{
+  int mask;
+  char path[MAXPATH];
+  struct proc *p = myproc();
+
+  argint(0, &mask);
+  if(argstr(1, path, MAXPATH) < 0)
+    return -1;
+
+  p->sandbox_mask = mask;
+  safestrcpy(p->sandbox_path, path, MAXPATH);
+  return 0;
+}
+
+uint64
 sys_getpid(void)
 {
   return myproc()->pid;

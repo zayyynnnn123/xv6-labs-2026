@@ -183,6 +183,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 .PRECIOUS: %.o
 
 UPROGS=\
+	$U/_sandbox\
 	$U/_uptime\
 	$U/_find\
 	$U/_cat\
