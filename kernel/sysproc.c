@@ -23,8 +23,13 @@ sys_interpose(void)
   char path[MAXPATH];
   struct proc *p = myproc();
 
+  // A process that is already sandboxed cannot call interpose()
+  // again to loosen or change its own restrictions.
+  if (p->sandbox_mask != 0)
+    return -1;
+
   argint(0, &mask);
-  if(argstr(1, path, MAXPATH) < 0)
+  if (argstr(1, path, MAXPATH) < 0)
     return -1;
 
   p->sandbox_mask = mask;

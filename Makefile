@@ -184,6 +184,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 
 UPROGS=\
 	$U/_sandbox\
+	$U/_sbtest\
 	$U/_uptime\
 	$U/_find\
 	$U/_cat\
