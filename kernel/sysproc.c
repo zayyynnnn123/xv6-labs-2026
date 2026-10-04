@@ -73,7 +73,6 @@ sys_pause(void)
   int n;
   uint ticks0;
 
-
   argint(0, &n);
   if (n < 0)
     n = 0;
@@ -92,7 +91,6 @@ sys_pause(void)
   release(&tickslock);
   return 0;
 }
-
 
 #ifdef LAB_PGTBL
 int
@@ -118,24 +116,24 @@ sys_pgaccess(void)
   argint(1, &len);
   argaddr(2, &mask);
 
-  if(len < 0 || len > 4096)          // bound it: result buffer is at most 512 bytes
+  if (len < 0 || len > 4096) // bound it: result buffer is at most 512 bytes
     return -1;
 
   struct proc *p = myproc();
   char abits[512];
   memset(abits, 0, sizeof(abits));
 
-  for(int i = 0; i < len; i++){
+  for (int i = 0; i < len; i++) {
     pte_t *pte = walk(p->pagetable, base + (uint64)i * PGSIZE, 0);
-    if(pte == 0 || (*pte & PTE_V) == 0)
-      return -1;                     // unmapped page is an error
-    if(*pte & PTE_A){
+    if (pte == 0 || (*pte & PTE_V) == 0)
+      return -1; // unmapped page is an error
+    if (*pte & PTE_A) {
       abits[i / 8] |= (1 << (i % 8));
       *pte &= ~PTE_A;
     }
   }
 
-  if(copyout(p->pagetable, p->sz, mask, abits, (len + 7) / 8) < 0)
+  if (copyout(p->pagetable, p->sz, mask, abits, (len + 7) / 8) < 0)
     return -1;
 
   return 0;

@@ -17,8 +17,6 @@ extern char etext[]; // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
-
-
 // Map one 2MB megapage: a leaf PTE at level 1.
 static void
 kvmmapsuper(pagetable_t pagetable, uint64 va, uint64 pa, int perm)
@@ -62,7 +60,6 @@ kvmmapauto(pagetable_t pagetable, uint64 va, uint64 pa, uint64 sz, int perm)
     }
   }
 }
-
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -193,29 +190,29 @@ walkaddr(pagetable_t pagetable, uint64 va)
   return pa;
 }
 
-
 #if defined(LAB_PGTBL) || defined(SOL_MMAP) || defined(SOL_COW)
 
 static void
 vmprint_level(pagetable_t pagetable, int level, uint64 vabase)
 {
-  for(int i = 0; i < 512; i++){
+  for (int i = 0; i < 512; i++) {
     pte_t pte = pagetable[i];
-    if((pte & PTE_V) == 0)
-      continue;                              // skip invalid entries
+    if ((pte & PTE_V) == 0)
+      continue; // skip invalid entries
 
     uint64 va = vabase + ((uint64)i << PXSHIFT(level));
 
     // user-visible form of the address: sign-extend bit 38
     uint64 pva = va;
-    if(pva & (1L << 38))
+    if (pva & (1L << 38))
       pva |= 0xFFFFFF8000000000L;
 
-    for(int d = 0; d < 3 - level; d++)       // level 2 -> 1 " ..", level 0 -> 3
+    for (int d = 0; d < 3 - level; d++) // level 2 -> 1 " ..", level 0 -> 3
       printk(" ..");
-    printk("%p: pte %p pa %p\n", (void*)pva, (void*)pte, (void*)PTE2PA(pte));
+    printk("%p: pte %p pa %p\n", (void *)pva, (void *)pte, (void *)PTE2PA(pte));
 
-    if((pte & (PTE_R | PTE_W | PTE_X)) == 0) // not a leaf: points to a lower table
+    if ((pte & (PTE_R | PTE_W | PTE_X)) ==
+        0) // not a leaf: points to a lower table
       vmprint_level((pagetable_t)PTE2PA(pte), level - 1, va);
   }
 }
@@ -227,10 +224,7 @@ vmprint(pagetable_t pagetable)
   vmprint_level(pagetable, 2, 0);
 }
 
-
-
 #endif
-
 
 // add a mapping to the kernel page table.
 // only used when booting.
@@ -319,7 +313,6 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     *pte = 0;
   }
 }
-
 
 // Allocate PTEs and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
@@ -480,7 +473,6 @@ copyout(pagetable_t pagetable, uint64 psz, uint64 dstva, char *src, uint64 len)
       return -1;
     }
 
-
     // forbid copyout over read-only user text pages.
     if ((*pte & PTE_W) == 0)
       return -1;
@@ -572,7 +564,6 @@ copyinstr(pagetable_t pagetable, uint64 psz, char *dst, uint64 srcva,
   }
 }
 
-
 // allocate and map user memory if process is referencing a page
 // that was lazily allocated in sys_sbrk().
 // returns 0 if va is invalid or already mapped, or if
@@ -581,7 +572,6 @@ uint64
 vmfault(pagetable_t pagetable, uint64 psz, uint64 va, int read)
 {
   uint64 mem;
-
 
   if (va >= psz)
     return 0;
@@ -612,5 +602,3 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
-
-

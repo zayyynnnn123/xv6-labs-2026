@@ -68,7 +68,7 @@
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 #ifdef LAB_PGTBL
 #define USYSCALL (TRAPFRAME - PGSIZE)
-#define UTOP (USYSCALL)
+#define UTOP     (USYSCALL)
 
 struct usyscall {
   int pid; // Process ID

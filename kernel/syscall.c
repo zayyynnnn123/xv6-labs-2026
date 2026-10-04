@@ -168,7 +168,6 @@ static uint64 (*syscalls[])(void) = {
   // clang-format on
 };
 
-
 void
 syscall(void)
 {

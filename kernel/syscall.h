@@ -23,20 +23,20 @@
 #define SYS_sync   22
 
 // System calls for labs
-#define SYS_trace     23
-#define SYS_interpose 24
-#define SYS_sigalarm  25
-#define SYS_sigreturn 26
-#define SYS_symlink   27
-#define SYS_mmap      28
-#define SYS_munmap    29
-#define SYS_bind      30
-#define SYS_unbind    31
-#define SYS_send      32
-#define SYS_recv      33
-#define SYS_pgpte     34
-#define SYS_vmprint   35
-#define SYS_rwlktest  36
-#define SYS_cpupin    37
-#define SYS_pgaccess  38
-#define SYS_ksupernpte  39
+#define SYS_trace      23
+#define SYS_interpose  24
+#define SYS_sigalarm   25
+#define SYS_sigreturn  26
+#define SYS_symlink    27
+#define SYS_mmap       28
+#define SYS_munmap     29
+#define SYS_bind       30
+#define SYS_unbind     31
+#define SYS_send       32
+#define SYS_recv       33
+#define SYS_pgpte      34
+#define SYS_vmprint    35
+#define SYS_rwlktest   36
+#define SYS_cpupin     37
+#define SYS_pgaccess   38
+#define SYS_ksupernpte 39

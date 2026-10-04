@@ -99,11 +99,11 @@ pgaccess_test()
   int npage = 256;
   printf("pgaccess_test starting\n");
   testname = "pgaccess_test";
-  
+
   buf = malloc(32 * PGSIZE);
   if (pgaccess(buf, 32, &abits) < 0)
     err("pgaccess failed");
-  
+
   buf[PGSIZE * 1] += 1;
   buf[PGSIZE * 2] += 1;
   buf[PGSIZE * 30] += 1;
@@ -115,19 +115,19 @@ pgaccess_test()
   free(buf);
 
   buf = malloc(npage * PGSIZE);
-  bits = malloc(PGSIZE/8);
+  bits = malloc(PGSIZE / 8);
   if (pgaccess(buf, npage, bits) < 0)
     err("pgaccess failed");
 
   for (int i = 0; i < npage; i++) {
     buf[i * PGSIZE] += 1;
   }
-  
+
   if (pgaccess(buf, npage, bits) < 0)
     err("pgaccess failed");
 
-  for(int i = 0; i < npage/8; i++) {
-    if(bits[i] != 0xFF) {
+  for (int i = 0; i < npage / 8; i++) {
+    if (bits[i] != 0xFF) {
       err("incorrect access bits set");
     }
   }
@@ -143,21 +143,22 @@ pgaccess_test()
     err("pgaccess succeeded");
 
   // test accessing first text page
-  if (pgaccess((char *) 4096, 1, bits) < 0)
+  if (pgaccess((char *)4096, 1, bits) < 0)
     err("pgaccess failed");
 
   // test accessing a unreasonable number of pages
-  if (pgaccess((char *) 4096, 10000000, bits) >= 0)
+  if (pgaccess((char *)4096, 10000000, bits) >= 0)
     err("pgaccess failed");
 
   free(buf);
   free(bits);
-  
+
   printf("pgaccess_test: OK\n");
 }
 
-
-void ksuper_test() {
+void
+ksuper_test()
+{
   testname = "ksuper_test";
   uint64 s = 0;
   uint64 n = 0;

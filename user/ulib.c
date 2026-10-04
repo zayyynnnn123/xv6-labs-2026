@@ -8,7 +8,6 @@
 #include "kernel/vm.h"
 #include "user/user.h"
 
-
 //
 // wrapper so that it's OK if main() does not call exit().
 //

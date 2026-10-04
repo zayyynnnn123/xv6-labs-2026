@@ -41,7 +41,7 @@ int ugetpid(void);
 uint64 pgpte(void *);
 void vmprint(void);
 int pgaccess(void *base, int len, void *mask);
-int ksupernpte(uint64*, uint64 *);
+int ksupernpte(uint64 *, uint64 *);
 #endif
 #ifdef LAB_LOCK
 int rwlktest(int resetflag);

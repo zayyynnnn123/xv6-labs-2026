@@ -131,7 +131,7 @@ found:
     return 0;
   }
 
-  if((p->usyscall = (struct usyscall *)kalloc()) == 0) {
+  if ((p->usyscall = (struct usyscall *)kalloc()) == 0) {
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -168,7 +168,7 @@ freeproc(struct proc *p)
   if (p->trapframe)
     kfree((void *)p->trapframe);
   p->trapframe = 0;
-  if(p->usyscall)
+  if (p->usyscall)
     kfree((void *)p->usyscall);
   p->usyscall = 0;
   if (p->pagetable)
@@ -213,7 +213,6 @@ proc_pagetable(struct proc *p)
     uvmfree(pagetable, 0);
     return 0;
   }
-
 
   // map the usyscall page just below the trapframe page, for
   // usyscall.S.
@@ -300,7 +299,6 @@ kfork(void)
   }
   np->sz = p->sz;
 
-
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -365,7 +363,6 @@ kexit(int status)
       p->ofile[fd] = 0;
     }
   }
-
 
   begin_op();
   iput(p->cwd);
@@ -739,4 +736,3 @@ procdump(void)
     printk("\n");
   }
 }
-
