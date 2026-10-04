@@ -1,0 +1,65 @@
+--01
+
+
+$ pgtbltest
+print_pgtbl starting
+va 0x0 pte 0x21FCD45B pa 0x87F35000 perm 0x5B
+va 0x1000 pte 0x21FD201B pa 0x87F48000 perm 0x1B
+va 0x2000 pte 0x21FD1417 pa 0x87F45000 perm 0x17
+va 0x3000 pte 0x21FD1007 pa 0x87F44000 perm 0x7
+va 0x4000 pte 0x21FD1CD7 pa 0x87F47000 perm 0xD7
+va 0x5000 pte 0x0 pa 0x0 perm 0x0
+va 0x6000 pte 0x0 pa 0x0 perm 0x0
+va 0x7000 pte 0x0 pa 0x0 perm 0x0
+va 0x8000 pte 0x0 pa 0x0 perm 0x0
+va 0x9000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFF6000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFF7000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFF8000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFF9000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFFA000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFFB000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFFC000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFFD000 pte 0x0 pa 0x0 perm 0x0
+va 0x3FFFFFE000 pte 0x21FC94C7 pa 0x87F25000 perm 0xC7
+va 0x3FFFFFF000 pte 0x2000184B pa 0x80006000 perm 0x4B
+print_pgtbl: OK
+
+
+the page table entries here show the virtual address that the process uses.
+the pte (page table entry) next to va shows the entry in the array called pagetable
+which has a total of 512 elements that contain the address to next page table in the tree.
+However, in this case the PTE here is from the last tree meaning level[0]. We take the 
+PPN of 44 bits from that entry by removing the 10 bits for flag from LSB and then shifting left
+12 bits for adding the 12 bits of offset from the virtual address. Doing all of this result in 
+the pa as shown in the output. Finally what is left is the perm which is short for permissions ,
+these are bits added together to show validity , readability , writability , executability ,
+user proc , global , accessed , dirty and reserved. these 12 bits are NOT stored with the resultant 
+physical address ,instead with PTA goes the 12 bits page offset . These 12 bits are stored in the pte 
+to signify what permissions the instruction has.
+
+
+--02
+what sys_calls can use shared pages ?:
+
+uptime(): this is the best candidate. It returns the global ticks counter, which clockintr increments on every timer interrupt.
+getppid(): xv6 doesn't have this syscall, but if you add one, the parent's pid can be stored in the page when the process is created (np->parent->pid).
+sbrk(0): when called with an increment of 0, sbrk only reports the current heap size p->sz. If the kernel keeps a copy of sz in the page and updates it in growproc
+,user code could answer that case without trapping. Real growth still needs a syscall, since the kernel has to allocate and map memory.
+
+
+a general rule for a syscall to use this trick:
+
+The kernel can keep the value current by writing to the page whenever it changes.
+The value is safe for the process to see.
+Reading a possibly slightly stale value is acceptable.
+
+
+--03
+In the vmprint output, the seven leaf pages are the process's text, data, guard page, stack, USYSCALL, trapframe, and trampoline, in that order. 
+The text page (0x0, flags 0x5B) holds the program's code and is readable, executable, and user-accessible but not writable. The data page (0x1000, 0xD7) holds global variables and is user readable and writable.
+The guard page (0x2000, 0x07) is mapped but has the U bit cleared, so a stack overflow causes a page fault instead of corrupting data. The stack page (0x3000, 0xD7) is user readable and writable and holds 
+the arguments exec pushed. At the top of the address space, the USYSCALL page (0x13) is user readable but not writable and holds the process's pid, the trapframe page (0xC7) stores the saved user registers and
+is readable and writable only by the kernel (no U bit), and the trampoline page (0x4B) holds the trap entry and exit code and is executable but not user accessible. These are the same pages and permission bits
+that print_pgtbl showed at the same addresses, since it probed them one by one from user space, whereas vmprint walks the tree and prints only the valid entries, plus the intermediate page-table pages (flags 0x01) 
+that lead to these leaves. The unmapped gap between the stack and USYSCALL printed as zeros in print_pgtbl and is simply skipped in vmprint.

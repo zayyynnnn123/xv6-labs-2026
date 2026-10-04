@@ -223,7 +223,7 @@ void            statsinit(void);
 void            statsinc(void);
 
 // sprintf.c
-int             snprintf(char*, unsigned long, const char*, ...);
+int             snprintk(char*, unsigned long, const char*, ...);
 #endif
 
 #ifdef KCSAN
