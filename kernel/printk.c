@@ -160,7 +160,7 @@ backtrace(void)
 
   printk("backtrace:\n");
   while (PGROUNDDOWN(fp) == page) {
-    printk("%p\n", (void *)*(uint64 *)(fp - 8));   // saved return address
-    fp = *(uint64 *)(fp - 16);                     // caller's frame pointer
+    printk("%p\n", (void *)*(uint64 *)(fp - 8)); // saved return address
+    fp = *(uint64 *)(fp - 16);                   // caller's frame pointer
   }
 }

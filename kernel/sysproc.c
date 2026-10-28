@@ -132,8 +132,7 @@ sys_sigreturn(void)
 {
   struct proc *p = myproc();
 
-  *p->trapframe = p->alarm_saved;   // restore all registers, incl. epc
-  p->alarm_active = 0;              // allow the handler to fire again
-  return p->trapframe->a0;          // syscall() will write this back to a0
+  *p->trapframe = p->alarm_saved; // restore all registers, incl. epc
+  p->alarm_active = 0;            // allow the handler to fire again
+  return p->trapframe->a0;        // syscall() will write this back to a0
 }
-
