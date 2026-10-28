@@ -140,6 +140,7 @@ panic(char *s)
   panicking = 1;
   printk("panic: ");
   printk("%s\n", s);
+  backtrace();
   panicked = 1; // freeze uart output from other CPUs
   for (;;)
     ;
@@ -149,4 +150,17 @@ void
 printkinit(void)
 {
   initlock(&pr.lock, "pr");
+}
+
+void
+backtrace(void)
+{
+  uint64 fp = r_fp();
+  uint64 page = PGROUNDDOWN(fp);
+
+  printk("backtrace:\n");
+  while (PGROUNDDOWN(fp) == page) {
+    printk("%p\n", (void *)*(uint64 *)(fp - 8));   // saved return address
+    fp = *(uint64 *)(fp - 16);                     // caller's frame pointer
+  }
 }

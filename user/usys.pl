@@ -23,6 +23,8 @@ sub entry {
 	
 entry("fork");
 entry("exit");
+entry("sigalarm");
+entry("sigreturn");
 entry("wait");
 entry("pipe");
 entry("read");

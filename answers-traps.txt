@@ -1,0 +1,21 @@
+1. Which registers contain function arguments? Which holds 13?
+The argument registers are a0–a7. The value 13 is in a2, the third argument to printf.
+
+2. Where is the call to f in main? Where is the call to g?
+Neither call appears explicitly. The compiler optimized them away: it replaced f(8) + 1 
+with 12 and inlined the calculation from g into f.
+
+3. At what address is printf located?
+At 0x746, as shown by jal 746 <printf>.
+
+4. What value is in ra just after the jalr to printf in main?
+The return address is 0x3c, the address of the instruction immediately after the call to printf.
+
+5. the output would be Hell0 Wo rld
+To get the same output (He110 Wo rld) on a big-endian RISC-V:
+
+1. Change i to 0x726c6400. In big-endian memory, its bytes will be 72 6c 64 00, representing rld followed by the null terminator.
+
+2. No, you don't need to change 57616. It is printed as hexadecimal using %x, and 57616 is still e110, regardless of endianness.
+printf("x=%d y=%d", 3);
+this has undefined behaviour because the format string expects 2 integers but only 1 argument is provided.
